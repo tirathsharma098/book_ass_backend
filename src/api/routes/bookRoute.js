@@ -1,9 +1,12 @@
 import express from "express";
 import {
     addBook,
+    approveBookSold,
     bookList,
+    buyBook,
     deleteBook,
     getBookDetail,
+    getSoldBooks,
     updateBook,
 } from "../controllers/book.js";
 import { validateSuperAdmin } from "../controllers/validators.js";
@@ -31,6 +34,9 @@ router.delete(
     "/delete-book/:id",
     deleteBook.validator,
     catchAsync(deleteBook.controller)
-)
+);
+router.post("/buy-book/:id", buyBook.validator, catchAsync(buyBook.controller));
+router.get("/book-sold", catchAsync(getSoldBooks.controller));
+router.put("/book-approve/:id", approveBookSold.validator, catchAsync(approveBookSold.controller))
 
 export default router;

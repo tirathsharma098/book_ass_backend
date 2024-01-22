@@ -222,25 +222,26 @@ const userList = {
     [CONTROLLER]: async (req, res) => {
         const { search_term, per_page, sort_field, sort_order, page_number } =
             req.query;
-        const aggregate = User.aggregate([
-            // {
-            //     $match: {
-            //         $or: [
-            //             { full_name: search_term },
-            //             { email: search_term },
-            //             { mobile: search_term },
-            //             { username: search_term },
-            //         ],
-            //     },
-            // },
-            {$sort: {'order_number' : -1}},
+        let aggr = [
             {
-                $skip:
-                    Number(per_page) *
-                    (Number(page_number) - 1),
+                $match: {
+                    _id: { $nin: [req.currentUser._id] },
+                },
+            },
+            { $sort: { order_number: -1 } },
+            {
+                $skip: Number(per_page) * (Number(page_number) - 1),
             },
             { $limit: per_page },
-        ]);
+        ];
+        if (search_term)
+            aggr[0]["$match"]["$or"] = [
+                { full_name: search_term },
+                { email: search_term },
+                { mobile: search_term },
+                { username: search_term },
+            ];
+        const aggregate = User.aggregate(aggr);
 
         const foundData = await aggregate.exec();
         console.log(">>> DATA GOT : ", foundData);
@@ -254,4 +255,86 @@ const userList = {
     },
 };
 
-export { userLogin, addNewUser, userList };
+const getUserDetail = {
+    [VALIDATOR]: celebrate({
+        params: Joi.object()
+            .keys({
+                id: Joi.string()
+                    .regex(/^[0-9a-fA-F]{24}$/)
+                    .required(),
+            })
+            .required(),
+    }),
+    [CONTROLLER]: async (req, res) => {
+        const { id } = req.params;
+        const userGot = await User.findById(id);
+        return sendResponse(
+            res,
+            userGot,
+            "User got successfully",
+            true,
+            httpStatus.OK
+        );
+    },
+};
+
+const updateUserById = {
+    [VALIDATOR]: celebrate({
+        params: Joi.object()
+            .keys({
+                id: Joi.string()
+                    .regex(/^[0-9a-fA-F]{24}$/)
+                    .required(),
+            })
+            .required(),
+        body: Joi.object()
+            .keys({
+                full_name: Joi.string()
+                    .required()
+                    .label("Full Name")
+                    .messages({ "*": "Please enter Full Name" }),
+                username: Joi.string()
+                    .regex(REGEX_USERNAME)
+                    .required()
+                    .messages({
+                        "*": "Please enter Username of {full_name}",
+                    }),
+                password: Joi.string().min(8).max(70).required(),
+                email: Joi.string()
+                    .email()
+                    .regex(REGEX_EMAIL)
+                    .allow("")
+                    .messages({
+                        "*": "Please enter valid email of {full_name}",
+                    }),
+                mobile: Joi.string().length(10).pattern(REGEX_MOBILE),
+                user_type: Joi.string()
+                    .valid(USER_TYPE.ADMIN, USER_TYPE.CUSTOMER)
+                    .required()
+                    .messages({
+                        "*": "Please tell User Type of {full_name}",
+                    }),
+            })
+            .required(),
+    }),
+    [CONTROLLER]: async (req, res) => {
+        const { id } = req.params;
+        const userGot = await User.findById(id);
+        if (!userGot)
+            return sendResponse(res, {}, "User not found", true, httpStatus.OK);
+        const encryptedPassword = await bcrypt.hash(req.body.password, 12);
+        await User.findByIdAndUpdate(id, {
+            ...req.body,
+            password: encryptedPassword,
+        });
+        return sendResponse(
+            res,
+            userGot,
+            "User updated successfully",
+            true,
+            httpStatus.OK
+        );
+    },
+};
+
+export { userLogin, addNewUser, userList, getUserDetail, updateUserById };

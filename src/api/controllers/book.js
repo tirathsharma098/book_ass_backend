@@ -1,4 +1,5 @@
 import Book from "../../db/models/book.js";
+import BookBought from "../../db/models/bookBought.js";
 import { CONTROLLER, VALIDATOR } from "../../utils/constants.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { celebrate, Joi } from "celebrate";
@@ -41,7 +42,7 @@ const bookList = {
     //         .required(),
     // }),
     [CONTROLLER]: async (req, res) => {
-        const bookFound = await Book.find({});
+        const bookFound = await Book.aggregate([{$sort: {'order_number' : -1}},]).exec();
         return sendResponse(
             res,
             bookFound,
@@ -56,7 +57,7 @@ const getBookDetail = {
     [VALIDATOR]: celebrate({
         params: Joi.object()
             .keys({
-                id: Joi.string().required(),
+                id: Joi.string().regex(/^[0-9a-fA-F]{24}$/).required(),
             })
             .required(),
     }),
@@ -77,7 +78,9 @@ const updateBook = {
     [VALIDATOR]: celebrate({
         params: Joi.object()
             .keys({
-                id: Joi.string().regex(/^[0-9a-fA-F]{24}$/).required(),
+                id: Joi.string()
+                    .regex(/^[0-9a-fA-F]{24}$/)
+                    .required(),
             })
             .required()
             .messages({
@@ -115,7 +118,9 @@ const deleteBook = {
     [VALIDATOR]: celebrate({
         params: Joi.object()
             .keys({
-                id: Joi.string().regex(/^[0-9a-fA-F]{24}$/).required(),
+                id: Joi.string()
+                    .regex(/^[0-9a-fA-F]{24}$/)
+                    .required(),
             })
             .required()
             .messages({
@@ -135,4 +140,103 @@ const deleteBook = {
     },
 };
 
-export { addBook, bookList, getBookDetail, updateBook, deleteBook };
+const buyBook = {
+    [VALIDATOR]: celebrate({
+        params: Joi.object()
+            .keys({
+                id: Joi.string()
+                    .regex(/^[0-9a-fA-F]{24}$/)
+                    .required(),
+            })
+            .required()
+            .messages({
+                "*": "Please enter valid book id",
+            }),
+    }),
+    [CONTROLLER]: async (req, res) => {
+        const { id } = req.params;
+        const bookBought = await BookBought.findOne({
+            book: { _id: id },
+            user: { _id: req.currentUser._id },
+        });
+        if (bookBought) {
+            if (bookBought.approved)
+                return sendResponse(
+                    res,
+                    {},
+                    "Book already bought successfully",
+                    true,
+                    httpStatus.OK
+                );
+            return sendResponse(
+                res,
+                bookBought,
+                "Book already in cart",
+                true,
+                httpStatus.OK
+            );
+        }
+        const bookFound = await Book.findById(id);
+        if (!bookFound)
+            return sendResponse(res, {}, "Book not found", true, httpStatus.OK);
+        const newBookBought = new BookBought({
+            book: bookFound,
+            user: req.currentUser,
+        });
+        await newBookBought.save();
+        return sendResponse(
+            res,
+            bookBought,
+            "Book bought successfully",
+            true,
+            httpStatus.OK
+        );
+    },
+};
+
+const getSoldBooks = {
+    [CONTROLLER]: async (req, res) => {
+        const foundBook = await BookBought.find()
+            .populate("user")
+            .populate("book");
+        return sendResponse(
+            res,
+            foundBook,
+            "Book found successfully",
+            true,
+            httpStatus.OK
+        );
+    },
+};
+
+const approveBookSold = {
+    [VALIDATOR]: celebrate({
+        params: Joi.object()
+            .keys({
+                id: Joi.string().regex(/^[0-9a-fA-F]{24}$/).required(),
+            })
+            .required(),
+    }),
+    [CONTROLLER]: async (req, res) => {
+        const { id } = req.params;
+        const approvedBook = await BookBought.findByIdAndUpdate(id, {approved: true});
+        return sendResponse(
+            res,
+            approvedBook,
+            "Book approved successfully",
+            true,
+            httpStatus.OK
+        );
+    },
+};
+
+export {
+    addBook,
+    bookList,
+    getBookDetail,
+    updateBook,
+    deleteBook,
+    buyBook,
+    getSoldBooks,
+    approveBookSold
+};
