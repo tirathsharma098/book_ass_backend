@@ -42,7 +42,9 @@ const bookList = {
     //         .required(),
     // }),
     [CONTROLLER]: async (req, res) => {
-        const bookFound = await Book.aggregate([{$sort: {'order_number' : -1}},]).exec();
+        const bookFound = await Book.aggregate([
+            { $sort: { created_at: -1 } },
+        ]).exec();
         return sendResponse(
             res,
             bookFound,
@@ -57,7 +59,9 @@ const getBookDetail = {
     [VALIDATOR]: celebrate({
         params: Joi.object()
             .keys({
-                id: Joi.string().regex(/^[0-9a-fA-F]{24}$/).required(),
+                id: Joi.string()
+                    .regex(/^[0-9a-fA-F]{24}$/)
+                    .required(),
             })
             .required(),
     }),
@@ -196,7 +200,9 @@ const buyBook = {
 
 const getSoldBooks = {
     [CONTROLLER]: async (req, res) => {
-        const foundBook = await BookBought.find()
+        const foundBook = await BookBought.find({}, [], {
+            sort: { created_at: -1 },
+        })
             .populate("user")
             .populate("book");
         return sendResponse(
@@ -213,13 +219,17 @@ const approveBookSold = {
     [VALIDATOR]: celebrate({
         params: Joi.object()
             .keys({
-                id: Joi.string().regex(/^[0-9a-fA-F]{24}$/).required(),
+                id: Joi.string()
+                    .regex(/^[0-9a-fA-F]{24}$/)
+                    .required(),
             })
             .required(),
     }),
     [CONTROLLER]: async (req, res) => {
         const { id } = req.params;
-        const approvedBook = await BookBought.findByIdAndUpdate(id, {approved: true});
+        const approvedBook = await BookBought.findByIdAndUpdate(id, {
+            approved: true,
+        });
         return sendResponse(
             res,
             approvedBook,
@@ -230,10 +240,11 @@ const approveBookSold = {
     },
 };
 
-
 const myBooks = {
     [CONTROLLER]: async (req, res) => {
-        const myBooks = await BookBought.find({user: req.currentUser}).populate("book");
+        const myBooks = await BookBought.find({ user: req.currentUser }, [], {
+            sort: { created_at: -1 },
+        }).populate("book");
         return sendResponse(
             res,
             myBooks,
@@ -243,7 +254,6 @@ const myBooks = {
         );
     },
 };
-
 
 export {
     addBook,

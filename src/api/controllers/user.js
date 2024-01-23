@@ -270,27 +270,18 @@ const userList = {
         query: Joi.object()
             .keys({
                 search_term: Joi.string().allow("", null),
-                sort_field: Joi.string().trim().allow(null, ""),
-                sort_order: Joi.string().valid("ASC", "DESC").allow(""),
-                per_page: Joi.number().integer().min(1).required(),
-                page_number: Joi.number().integer().min(1).required(),
             })
             .required(),
     }),
     [CONTROLLER]: async (req, res) => {
-        const { search_term, per_page, sort_field, sort_order, page_number } =
-            req.query;
+        const { search_term } = req.query;
         let aggr = [
             {
                 $match: {
                     _id: { $nin: [req.currentUser._id] },
                 },
             },
-            { $sort: { order_number: -1 } },
-            {
-                $skip: Number(per_page) * (Number(page_number) - 1),
-            },
-            { $limit: per_page },
+            { $sort: { created_at: -1 } },
         ];
         if (search_term)
             aggr[0]["$match"]["$or"] = [
