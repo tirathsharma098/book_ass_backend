@@ -34,11 +34,13 @@ router.get(
 router.get(
     "/user-detail/:id",
     getUserDetail.validator,
+    validateSuperAdmin,
     catchAsync(getUserDetail.controller)
 );
 router.put(
     "/update-user/:id",
     updateUserById.validator,
+    validateSuperAdmin,
     catchAsync(updateUserById.controller)
 );
 router.get("/my-profile", catchAsync(getMyProfile.controller));
