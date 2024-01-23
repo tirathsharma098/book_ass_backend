@@ -411,7 +411,7 @@ const getMyProfile = {
 };
 const userLoggedOut = {
     [CONTROLLER]: async (req, res) => {
-        await Token.findOneAndDelete({token: req.headers.authorization});
+        await Token.findOneAndDelete({ token: req.headers.authorization });
         return sendResponse(
             res,
             {},
@@ -422,6 +422,39 @@ const userLoggedOut = {
     },
 };
 
+const updateUserStatus = {
+    [VALIDATOR]: celebrate({
+        params: Joi.object()
+            .keys({
+                id: Joi.string()
+                    .regex(/^[0-9a-fA-F]{24}$/)
+                    .required(),
+            })
+            .required(),
+        body: Joi.object()
+            .keys({
+                status: Joi.string()
+                    .valid(USER_STATUS.ACTIVE, USER_STATUS.INACTIVE)
+                    .required()
+                    .messages({
+                        "*": "Please tell User status",
+                    }),
+            })
+            .required(),
+    }),
+    [CONTROLLER]: async (req, res) => {
+        await User.findByIdAndUpdate(req.params.id, {
+            status: req.body.status,
+        });
+        return sendResponse(
+            res,
+            {},
+            "User status updated successfully",
+            true,
+            httpStatus.OK
+        );
+    },
+};
 export {
     userLogin,
     addNewUser,
@@ -431,4 +464,5 @@ export {
     signUpUser,
     getMyProfile,
     userLoggedOut,
+    updateUserStatus,
 };

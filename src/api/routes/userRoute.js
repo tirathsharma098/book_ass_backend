@@ -10,6 +10,7 @@ import {
     signUpUser,
     getMyProfile,
     userLoggedOut,
+    updateUserStatus,
 } from "../controllers/user.js";
 import { validateSuperAdmin } from "../controllers/validators.js";
 const router = express.Router();
@@ -45,4 +46,10 @@ router.put(
 );
 router.get("/my-profile", catchAsync(getMyProfile.controller));
 router.put("/logout", catchAsync(userLoggedOut.controller));
+router.put(
+    "/update-user-status/:id",
+    updateUserStatus.validator,
+    validateSuperAdmin,
+    catchAsync(updateUserStatus.controller)
+);
 export default router;
