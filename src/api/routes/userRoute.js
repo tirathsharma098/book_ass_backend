@@ -7,12 +7,15 @@ import {
     userList,
     getUserDetail,
     updateUserById,
+    signUpUser,
+    getMyProfile,
+    userLoggedOut,
 } from "../controllers/user.js";
 import { validateSuperAdmin } from "../controllers/validators.js";
 const router = express.Router();
 
 router.post("/login", userLogin.validator, catchAsync(userLogin.controller));
-
+router.post("/signup", signUpUser.validator, catchAsync(signUpUser.controller));
 // Validating below routes
 router.use(ValidateUser.controller);
 
@@ -38,4 +41,6 @@ router.put(
     updateUserById.validator,
     catchAsync(updateUserById.controller)
 );
+router.get("/my-profile", catchAsync(getMyProfile.controller));
+router.put("/logout", catchAsync(userLoggedOut.controller));
 export default router;

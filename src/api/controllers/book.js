@@ -230,6 +230,21 @@ const approveBookSold = {
     },
 };
 
+
+const myBooks = {
+    [CONTROLLER]: async (req, res) => {
+        const myBooks = await BookBought.find({user: req.currentUser}).populate("book");
+        return sendResponse(
+            res,
+            myBooks,
+            "Books got successfully",
+            true,
+            httpStatus.OK
+        );
+    },
+};
+
+
 export {
     addBook,
     bookList,
@@ -238,5 +253,6 @@ export {
     deleteBook,
     buyBook,
     getSoldBooks,
-    approveBookSold
+    approveBookSold,
+    myBooks,
 };

@@ -17,6 +17,7 @@ router.use(
         path: [
             // /^\/api\/v1\/user\/login/,
             "/api/v1/user/login",
+            "/api/v1/user/signup",
         ],
     })
 );

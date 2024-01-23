@@ -141,6 +141,64 @@ const userLogin = {
     },
 };
 
+const signUpUser = {
+    [VALIDATOR]: celebrate({
+        body: Joi.object()
+            .keys({
+                full_name: Joi.string()
+                    .required()
+                    .label("Full Name")
+                    .messages({ "*": "Please enter Full Name" }),
+                username: Joi.string()
+                    .regex(REGEX_USERNAME)
+                    .required()
+                    .messages({
+                        "*": "Please enter Username of {full_name}",
+                    }),
+                password: Joi.string().min(8).max(70).required(),
+                email: Joi.string()
+                    .email()
+                    .regex(REGEX_EMAIL)
+                    .allow("")
+                    .messages({
+                        "*": "Please enter valid email of {full_name}",
+                    }),
+                mobile: Joi.string().length(10).pattern(REGEX_MOBILE),
+            })
+            .required(),
+    }),
+    [CONTROLLER]: async (req, res) => {
+        const { full_name, username, email, mobile, password } = req.body;
+        const gotUser = await User.findOne({
+            $or: [{ email }, { username }, { mobile }],
+        });
+        if (gotUser)
+            return sendResponse(
+                res,
+                {},
+                "User already exist",
+                false,
+                httpStatus.OK
+            );
+        const encryptedPassword = await bcrypt.hash(password, 12);
+        const newUser = new User({
+            full_name,
+            username,
+            email,
+            mobile,
+            password: encryptedPassword,
+        });
+        await newUser.save();
+        return sendResponse(
+            res,
+            { signed: true },
+            "User signup successfully",
+            true,
+            httpStatus.OK
+        );
+    },
+};
+
 const addNewUser = {
     [VALIDATOR]: celebrate({
         body: Joi.object()
@@ -244,7 +302,7 @@ const userList = {
         const aggregate = User.aggregate(aggr);
 
         const foundData = await aggregate.exec();
-        console.log(">>> DATA GOT : ", foundData);
+        // console.log(">>> DATA GOT : ", foundData);
         return sendResponse(
             res,
             foundData,
@@ -337,4 +395,40 @@ const updateUserById = {
     },
 };
 
-export { userLogin, addNewUser, userList, getUserDetail, updateUserById };
+const getMyProfile = {
+    [CONTROLLER]: async (req, res) => {
+        const userGot = await User.findById(req.currentUser._id);
+        if (!userGot)
+            return sendResponse(res, {}, "User not found", true, httpStatus.OK);
+        return sendResponse(
+            res,
+            userGot,
+            "User got successfully",
+            true,
+            httpStatus.OK
+        );
+    },
+};
+const userLoggedOut = {
+    [CONTROLLER]: async (req, res) => {
+        await Token.findOneAndDelete({token: req.headers.authorization});
+        return sendResponse(
+            res,
+            {},
+            "User logged out successfully",
+            true,
+            httpStatus.OK
+        );
+    },
+};
+
+export {
+    userLogin,
+    addNewUser,
+    userList,
+    getUserDetail,
+    updateUserById,
+    signUpUser,
+    getMyProfile,
+    userLoggedOut,
+};

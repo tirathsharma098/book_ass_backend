@@ -7,6 +7,7 @@ import {
     deleteBook,
     getBookDetail,
     getSoldBooks,
+    myBooks,
     updateBook,
 } from "../controllers/book.js";
 import { validateSuperAdmin } from "../controllers/validators.js";
@@ -38,5 +39,6 @@ router.delete(
 router.post("/buy-book/:id", buyBook.validator, catchAsync(buyBook.controller));
 router.get("/book-sold", catchAsync(getSoldBooks.controller));
 router.put("/book-approve/:id", approveBookSold.validator, catchAsync(approveBookSold.controller))
+router.get('/my-books', catchAsync(myBooks.controller))
 
 export default router;
